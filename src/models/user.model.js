@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import decrypt from 'bcrypt'; //for hashing passwords
+import bcrypt from 'bcrypt'; //for hashing passwords
 import jwt from 'jsonwebtoken'; //authentication 
 
 const userSchema = mongoose.Schema({
