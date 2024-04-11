@@ -1,4 +1,6 @@
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
+
+import mongooseAggregatePaginate from 'mongoose-aggregate-paginate-v2'; //used to write aggregate pipelines in mongodb
 
 const videoSchema = mongoose.Schema({
     videoFile : {
@@ -37,5 +39,7 @@ const videoSchema = mongoose.Schema({
 },{
     timeStamps:true
 })
+
+videoSchema.plugin(mongooseAggregatePaginate);
 
 export const Video = mongoose.model("Video",videoSchema); 
