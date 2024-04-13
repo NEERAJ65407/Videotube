@@ -29,4 +29,18 @@ const uploadOnCloudinary = async (localFilePath) =>{
     }
 }
 
-export {uploadOnCloudinary}
+const deleteFromCloudinary = async (url) =>{
+    try {
+        const parts = url.split('/');
+        const filename = parts.pop().split('.')[0];
+        const fullpublicId = parts.pop() + '/' + filename;
+        const publicId = fullpublicId.split("/")[1]; // the public id is extracted from the url 
+        const deletionResponse = await cloudinary.uploader.destroy(publicId); // the public id used to remove the avatar 
+        return deletionResponse;
+        
+    } catch (error) {
+        return null
+    }
+}
+
+export {uploadOnCloudinary , deleteFromCloudinary}
