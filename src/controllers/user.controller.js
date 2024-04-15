@@ -4,6 +4,8 @@ import {User} from '../models/user.model.js'; // the user was created in the use
 import {uploadOnCloudinary, deleteFromCloudinary} from '../utils/cloudinary.js';
 import {ApiResponse} from '../utils/ApiResponse.js';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
+
 
 
 const generateAccessAndRefreshTokens = async(userId)=>{
@@ -22,7 +24,6 @@ const generateAccessAndRefreshTokens = async(userId)=>{
         throw new ApiError(500,"Something went wrong while generating refresh and access token");
     }
 }
-
 
 const registerUser = asyncHandler( async (req,res) => {
 
@@ -220,7 +221,6 @@ const refreshAccessToken = asyncHandler( async (req,res,) => {
     )
 })
 
-
 const changeCurrentUserPassword = asyncHandler(async(req,res)=>{
     
     const {oldPassword, newPassword, confirmPassword} = req.body;
@@ -345,6 +345,126 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
     )
 })
 
+const getUserChannelProfile = asyncHandler( async(req,res)=>{
+    const {username} = req.params
+
+    if(!username?.trim()){
+        throw new ApiError(400, "Username is missing");
+    }
+    
+    const channel = await User.aggregate([
+        {
+            $match: {
+                username: username?.toLowerCase() // we are finding the user details with particular username
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions", // we are selecting subscriptions collection
+                localField: "_id",  // we select _id from users collection 
+                foreignField: "channel", // we try to find the documents in which this id is present in channel field which will give us the subscribers of the channel
+                as: "subscribers"
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id", // selecting _id of particular username
+                foreignField: "subscriber",  // checking in what all documents this id is in subscriber field in the subscriptions collection which gives the channels this user has subscribed
+                as: "subscribedTo"
+            }
+        },
+        {
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers"
+                },
+                channelsSubscribedToCount: {
+                    $size: "$subscribedTo"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                fullName: 1,
+                username: 1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1
+
+            }
+        }
+    ])
+
+
+    if(!channel?.length){
+        throw new ApiError(400,"Channel does not exist ");
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,channel[0],"User channel fetched successfully")
+    )
+})
+
+const getUserWatchHistory = asyncHandler(async(req,res)=>{
+    const user = await User.aggregate([
+        {
+            $match : {
+                _id : new mongoose.Types.ObjectId(req.user.id) // we generally get the string value of id from the req.user._id but we need mongodb object
+            },// generally mongoose takes the string and converts it but during aggregation mongoose is not used so we have to create mongo object from string                                          
+        },
+        {
+            $lookup : {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as : "watchHistory",
+                pipeline : [ // we create a sub piple line so that we can retrive user data if we dont use subpipeline we cannot fetch user details afterwards
+                    {
+                        $lookup : {
+                            from : "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as : "owner",
+                            pipeline : [{
+                                $project : {
+                                    fullname: 1,
+                                    username :1,
+                                    avatar:1 
+                                }
+                            }] 
+                        }
+                    },
+                    {
+                        $addFields : { 
+                            owner : { // we overwrite the owner field and we extract the first element from array and make it into an object
+                                $first :"$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,user[0].watchHistory,"The user watch history fetched successfully")
+    )
+})
 
 export {
     registerUser,
@@ -355,6 +475,8 @@ export {
     getUser,
     updateUserAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile,
+    getUserWatchHistory
 
 } ;
