@@ -73,8 +73,8 @@ const registerUser = asyncHandler( async (req,res) => {
 
     const user = await User.create({
     fullname: fullname,
-    avatar: avatar,
-    coverImage: coverImage? coverImage : " ",
+    avatar: avatar.url,
+    coverImage: coverImage.url? coverImage.url : " ",
     email: email,
     password: password,
     username: username.toLowerCase()
@@ -301,7 +301,7 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
         throw new ApiError(400,"Old avatar deletion unsuccessful");
     }
 
-    user.avatar = avatar; // setting new avatar url to database
+    user.avatar = avatar.url; // setting new avatar url to database
     await user.save();
 
     return res
@@ -335,7 +335,7 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
         throw new ApiError(400,"Old Cover Image deletion unsuccessful");
     }
 
-    user.coverImage = coverImage; // setting new cover image url to database
+    user.coverImage = coverImage.url; // setting new cover image url to database
     await user.save();
 
     return res

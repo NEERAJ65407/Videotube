@@ -1,6 +1,7 @@
 import express  from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import bodyParser from "body-parser";
 
 const app = express();
 
@@ -9,21 +10,28 @@ app.use(cors({ //used to connect frontend and backend
     credentials:true
 }));
 
-app.use(express.json({
+app.use(bodyParser.json({
     limit:"16kb" //to get data from form or body
 }));
 
-app.use(express.urlencoded({extended:true,limit:"16kb"}));//get data from url by decoding it 
+app.use(bodyParser.urlencoded({extended:true,limit:"16kb"}));//get data from url by decoding it 
 app.use(express.static("Public")); //used to configure public file 
 app.use(cookieParser());
 
 //routes
 
-import userRouter from './routes/user.routes.js';
-
+import userRouter from "./routes/user.routes.js";
+import videoRouter from "./routes/video.routes.js";
+import playlistRouter from "./routes/playlist.routes.js";
+import subscriptionRouter from "./routes/subscription.routes.js"
+import commentRouter from "./routes/comment.routes.js";
 
 //route declaration 
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/videos", videoRouter);
+app.use("/api/v1/playlists", playlistRouter);
+app.use("/api/v1/subscriptions", subscriptionRouter);
+app.use("/api/v1/comments", commentRouter);
 
 export {app};
 

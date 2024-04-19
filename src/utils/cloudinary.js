@@ -19,7 +19,7 @@ const uploadOnCloudinary = async (localFilePath) =>{
         });
         
         fs.unlinkSync(localFilePath); // file is removed from localstorage on server after file is uploaded successfully on cloudinary
-        return uploadResponse.url ; // returning the fileurl provided by cloudinary to user
+        return uploadResponse ; // returning the fileurl provided by cloudinary to user
     
     } catch (error){
     

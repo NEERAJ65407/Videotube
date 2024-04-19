@@ -4,8 +4,7 @@ import mongooseAggregatePaginate from 'mongoose-aggregate-paginate-v2';
 const commentSchema = mongoose.Schema(
     {
         content : {
-            type : String,
-            required : true
+            type : String
         },
         video : {
             type : mongoose.Schema.Types.ObjectId,
