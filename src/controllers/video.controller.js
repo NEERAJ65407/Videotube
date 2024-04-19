@@ -75,6 +75,9 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(404,"Video not found");
     }
 
+    video.views++ ;
+    await video.save(); 
+
     return res
     .status(200)
     .json(
@@ -143,7 +146,7 @@ const updateVideo = asyncHandler(async (req, res) => {
     )
 
 })
-// fix deletion from cloud
+
 const deleteVideo = asyncHandler(async (req, res) => {
     
     const { videoId } = req.params
@@ -169,11 +172,12 @@ const deleteVideo = asyncHandler(async (req, res) => {
     }
 
     const deletedVideoUrl = video.videoFile;
+    
     const deletedThumbnailUrl = video.thumbnail;
 
-    const deleteVideoFromCloud = await deleteFromCloudinary(deletedVideoUrl);
+    const deleteVideoFromCloud = await deleteFromCloudinary(deletedVideoUrl,'video');
     
-    const deleteThumbnailFromCloud = await deleteFromCloudinary(deletedThumbnailUrl);
+    const deleteThumbnailFromCloud = await deleteFromCloudinary(deletedThumbnailUrl,'image');
     
     if(!deleteVideoFromCloud){
         throw new ApiError(400,"Error while deleting video from cloudinary");
@@ -184,7 +188,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
     }
 
     const deletedVideo = await Video.findOneAndDelete({_id:videoId});
-
+    
     if(!deletedVideo){
         throw new ApiError(500,"Error while deleting video");
     }

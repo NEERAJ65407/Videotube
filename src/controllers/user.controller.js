@@ -64,8 +64,8 @@ const registerUser = asyncHandler( async (req,res) => {
         throw new ApiError(400,"Avatar file is required"); // checking for avatar image
     }
 
-    const avatar = await uploadOnCloudinary(avatarLocalPath);
-    const coverImage = await uploadOnCloudinary(coverImageLocalPath); // upload on cloudinary
+    const avatar = await uploadOnCloudinary(avatarLocalPath, 'image');
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath, 'image'); // upload on cloudinary
 
     if(!avatar){
         throw new ApiError(400,"Avatar file is required"); // checking if avatar is uploaded successfully on cloudinary
@@ -295,7 +295,7 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
 
     const oldAvatarUrl = user.avatar; // getting url of old avatar from db 
 
-    const deletedAvatar = await deleteFromCloudinary(oldAvatarUrl); //deleting the old avatar from cloudinary
+    const deletedAvatar = await deleteFromCloudinary(oldAvatarUrl,'image'); //deleting the old avatar from cloudinary
    
     if(!deletedAvatar){
         throw new ApiError(400,"Old avatar deletion unsuccessful");
@@ -329,7 +329,7 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
 
     const oldcoverImageUrl = user.coverImage; // getting url of old cover image from db 
 
-    const deletedCoverImage = await deleteFromCloudinary(oldcoverImageUrl); //deleting the old cover image from cloudinary
+    const deletedCoverImage = await deleteFromCloudinary(oldcoverImageUrl,'image'); //deleting the old cover image from cloudinary
    
     if(!deletedCoverImage){
         throw new ApiError(400,"Old Cover Image deletion unsuccessful");
