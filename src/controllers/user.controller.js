@@ -5,6 +5,7 @@ import {uploadOnCloudinary, deleteFromCloudinary} from '../utils/cloudinary.js';
 import {ApiResponse} from '../utils/ApiResponse.js';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+import { Video } from '../models/video.model.js';
 
 
 
@@ -466,6 +467,91 @@ const getUserWatchHistory = asyncHandler(async(req,res)=>{
     )
 })
 
+const deleteUser = asyncHandler (async(req,res)=>{
+
+    const {password} = req.body;
+
+    const user = await User.findById(req.user.id);
+    
+    if( ! await user.isPasswordCorrect(password)){
+        throw new ApiError(400,"Password is incorrect");
+    }
+
+    const deletedUserAvatarUrl = user.avatar;
+
+    const deletedUserCoverImageUrl = user.coverImage;
+
+    const deletedAvatar = await deleteFromCloudinary(deletedUserAvatarUrl,'image');
+
+    const deletedCoverImage = await deleteFromCloudinary(deletedUserCoverImageUrl,'image');
+
+    if( ! deletedAvatar){
+        throw new ApiError(500,"Error while deleting avatar");
+    }
+
+    if( ! deletedCoverImage){
+        throw new ApiError(500,"Error while deleting Cover image");
+    }
+
+    const videos = await Video.aggregate([
+        {
+            $match: {
+                owner: new mongoose.Types.ObjectId(req.user.id)
+            }
+        },
+        {
+            $project: {
+                _id: 1
+            }
+        }
+    ]);
+    
+    for (const videoItem of videos) {
+        try {
+            const videoId = videoItem._id;
+    
+            const video = await Video.findById(videoId);
+            if (!video) {
+                throw new Error(`Video with ID ${videoId} not found`);
+            }
+    
+            const { videoFile, thumbnail } = video;
+    
+            const deletedVideoFromCloudinary = await deleteFromCloudinary(videoFile, 'video');
+            const deletedThumbnailFromCloudinary = await deleteFromCloudinary(thumbnail, 'image');
+    
+            if (!deletedVideoFromCloudinary) {
+                throw new ApiError(500,`Error while deleting video ${videoId} from Cloudinary`);
+            }
+            if (!deletedThumbnailFromCloudinary) {
+                throw new ApiError(500,`Error while deleting thumbnail ${videoId} from Cloudinary`);
+            }
+    
+            const deletedVideo = await Video.deleteOne({ _id: videoId });
+            if (!deletedVideo.deletedCount) {
+                throw new Error(`Error while deleting video ${videoId}`);
+            }
+    
+            
+        } catch (error) {
+            console.error(error.message);
+        }
+    }
+    
+    const deletedUser = await user.deleteOne({_id:req.user.id})
+    
+    if (!deletedUser){
+        throw new ApiError(500,"Error while deleting user")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,user,"User account deleted successfully")
+    )
+    
+})
+
 export {
     registerUser,
     loginUser,
@@ -477,6 +563,7 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
-    getUserWatchHistory
+    getUserWatchHistory,
+    deleteUser
 
 } ;
