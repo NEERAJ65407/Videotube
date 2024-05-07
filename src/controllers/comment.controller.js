@@ -10,11 +10,11 @@ const getVideoComments = asyncHandler(async (req, res) => {
     const {page = 1, limit = 10} = req.query;
     
     const skip = (page-1) * limit;
-    console.log(skip);
+    
     const comments = await Comment.find({video:videoId})
     .skip(skip)
     .limit(limit)
-    console.log(comments);
+    
     const totalCount = await Comment.countDocuments({video:videoId});
 
     const totalPages = Math.ceil(totalCount/limit);

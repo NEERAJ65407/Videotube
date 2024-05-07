@@ -3,56 +3,103 @@ import { Video } from "../models/video.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
 import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 const test = asyncHandler( async(req,res)=>{
     
-    const videos = await Video.aggregate([
+    const query = "i want a video";
+    const keyWords =  query.split(" ");
+
+    if( ! keyWords ){
+        
+        const allVideos = await Video.aggregate([
+            {
+                "$lookup": {
+                  "from": "users",
+                  "localField": "owner",
+                  "foreignField": "_id",
+                  "as": "ownerDetails"
+                }
+              },
+              {
+               "$addFields": {
+                  "ownerDetails": { "$arrayElemAt": ["$ownerDetails", 0] },
+                  "uploaded" : "$createdAt"
+                }
+            },
+            {
+              "$project": {
+                "title": 1,
+                "description": 1,
+                "videoFile":1,
+                "thumbnail": 1,
+                "views":1,
+                "ownerDetails.avatar": 1,
+                "ownerDetails.username": 1,
+                "uploaded" : 1
+              }
+            }
+        ]);
+
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(200,allVideos,"Videos fetched ")
+        )
+    }
+
+    const searchedVideos = await Video.aggregate([
         {
-            $match: {
-                owner : new mongoose.Types.ObjectId(req.user.id)
+          "$addFields": {
+            "lowercaseTitle": { "$toLower": "$title" },
+            "lowercaseDescription": { "$toLower": "$description" },
+            "titleArray": { "$split": ["$title", " "] },
+            "descriptionArray": { "$split": ["$description", " "] }
+          }
+        },
+        {
+          "$match": {
+            "$or": [
+              { "titleArray": { "$in": queryComponents } },
+              { "descriptionArray": { "$in": queryComponents } }
+            ]
+          }
+        },
+        {
+            "$lookup": {
+              "from": "users",
+              "localField": "owner",
+              "foreignField": "_id",
+              "as": "ownerDetails"
+            }
+          },
+          {
+           "$addFields": {
+              "ownerDetails": { "$arrayElemAt": ["$ownerDetails", 0] },
+              "uploaded" : "$createdAt"
             }
         },
         {
-            $project : {
-                _id :1
-            }
+          "$project": {
+            "title": 1,
+            "description": 1,
+            "videoFile":1,
+            "thumbnail": 1,
+            "views":1,
+            "ownerDetails.avatar": 1,
+            "ownerDetails.username": 1,
+            "uploaded" : 1
+          }
         }
-    ])
+      ]);
+      
+      
 
-    const count = videos.length;
-    
-    for (let i = 0 ; i< count ;i++){
-        
-        const videoId = videos[i];
-
-        const video = await Video.findById(videoId);
-        
-        const deletedVideoUrl = video.videoFile;
-
-        const deletedThumbnailUrl = video.thumbnail;
-
-        const deletedVideoFromCloudinary = await deleteFromCloudinary(deletedVideoUrl,'video');
-
-        const deletedThumbnailFromCloudinary = await deleteFromCloudinary(deletedThumbnailUrl,'image');
-        
-        if( !deletedVideoFromCloudinary){
-            throw new ApiError(500,`Error while deleting video ${videoId} from cloudinary `);
-        }
-        if( !deletedThumbnailFromCloudinary){
-            throw new ApiError(500,`Error while deleting thumbnail ${videoId} from cloudinary `);
-        }
-
-        const deletedVideo = await Video.deleteOne(videoId);
-        
-        if( !deletedVideo){
-            throw new ApiError(500,`Error while deleting ${videoId} `);
-        }
-    }
     return res
-        .status(200)
-        .json(
-        {delvideos:videos,
-        count:count})
+    .status(200)
+    .json(
+        new ApiResponse(200,searchedVideos,"videos Retrived")
+    )
 })
 
 export default test
